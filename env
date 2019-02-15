@@ -1,0 +1,6 @@
+################################
+# STORAGE
+################################
+export LB_DEBUGON='true'
+export STOR_CLIPOOL='5'
+export GOOGLE_APPLICATION_CREDENTIALS="/PATH/TO/GCPCREDENTIALS.JSON"
