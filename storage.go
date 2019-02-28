@@ -189,3 +189,21 @@ func (sto *StorMgr) ListBucket(ctx context.Context, bucketName, prefix string, s
 
 	return result, nil
 }
+
+//RemoveFile deletes a bucket file
+func (sto *StorMgr) RemoveFile(ctx context.Context, bucketName string, contentType, fileName string) error {
+	if EnvDebugOn {
+		lblog.LogEvent("StorMgr", "RemoveFile", "info", "start")
+	}
+
+	err := sto.localStClient.Bucket(bucketName).Object(fileName).Delete(ctx)
+	if err != nil {
+		return err
+	}
+
+	if EnvDebugOn {
+		lblog.LogEvent("StorMgr", "RemoveFile", "info", "end")
+	}
+
+	return nil
+}
