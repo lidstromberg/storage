@@ -31,7 +31,7 @@ Change LB_DEBUGON to true/false if you want verbose logging on/off. The other va
 ################################
 # STORAGE
 ################################
-export LB_DEBUGON='true'
+export STOR_DEBUGON='true'
 export STOR_CLIPOOL='5'
 
 ################################
