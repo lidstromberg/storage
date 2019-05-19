@@ -16,37 +16,51 @@ import (
 
 //StorMgr handles interactions with GCS
 type StorMgr struct {
-	localStClient *storage.Client
-	bc            lbcf.ConfigSetting
+	st *storage.Client
+	bc lbcf.ConfigSetting
 }
 
-//NewStorMgr returns a new storage manager
-func NewStorMgr(ctx context.Context, bc lbcf.ConfigSetting) (*StorMgr, error) {
+//NewMgr returns a new storage manager
+func NewMgr(ctx context.Context, bc lbcf.ConfigSetting) (*StorMgr, error) {
 	preflight(ctx, bc)
 
 	if EnvDebugOn {
 		lblog.LogEvent("StorMgr", "NewMgr", "info", "start")
 	}
 
-	storageClient := &storage.Client{}
-
-	if bc.GetConfigValue(ctx, "EnvStorCrdFile") != "" {
-		sc, err := storage.NewClient(ctx, option.WithGRPCConnectionPool(EnvClientPool), option.WithCredentialsFile(bc.GetConfigValue(ctx, "EnvStorCrdFile")))
-		if err != nil {
-			return nil, err
-		}
-		storageClient = sc
-	} else {
-		sc, err := storage.NewClient(ctx, option.WithGRPCConnectionPool(EnvClientPool))
-		if err != nil {
-			return nil, err
-		}
-		storageClient = sc
+	storageClient, err := storage.NewClient(ctx, option.WithGRPCConnectionPool(EnvClientPool))
+	if err != nil {
+		return nil, err
 	}
 
 	st1 := &StorMgr{
-		localStClient: storageClient,
-		bc:            bc,
+		st: storageClient,
+		bc: bc,
+	}
+
+	if EnvDebugOn {
+		lblog.LogEvent("StorMgr", "NewMgr", "info", "end")
+	}
+
+	return st1, nil
+}
+
+//NewJSONCredMgr returns a new storage manager based on a GCP credential supplied as a byte array
+func NewJSONCredMgr(ctx context.Context, bc lbcf.ConfigSetting, cred []byte) (*StorMgr, error) {
+	preflight(ctx, bc)
+
+	if EnvDebugOn {
+		lblog.LogEvent("StorMgr", "NewMgr", "info", "start")
+	}
+
+	storageClient, err := storage.NewClient(ctx, option.WithGRPCConnectionPool(EnvClientPool), option.WithCredentialsJSON(cred))
+	if err != nil {
+		return nil, err
+	}
+
+	st1 := &StorMgr{
+		st: storageClient,
+		bc: bc,
 	}
 
 	if EnvDebugOn {
@@ -62,7 +76,7 @@ func (sto *StorMgr) GetBucketFileData(ctx context.Context, bucketName string, fi
 		lblog.LogEvent("StorMgr", "GetBucketFileData", "info", "start")
 	}
 
-	rc, err := sto.localStClient.Bucket(bucketName).Object(fileName).NewReader(ctx)
+	rc, err := sto.st.Bucket(bucketName).Object(fileName).NewReader(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +100,7 @@ func (sto *StorMgr) WriteBucketFile(ctx context.Context, bucketName string, cont
 		lblog.LogEvent("StorMgr", "WriteBucketFile", "info", "start")
 	}
 
-	wc := sto.localStClient.Bucket(bucketName).Object(fileName).NewWriter(ctx)
+	wc := sto.st.Bucket(bucketName).Object(fileName).NewWriter(ctx)
 	defer wc.Close()
 
 	if _, err := wc.Write(data); err != nil {
@@ -105,10 +119,93 @@ func (sto *StorMgr) WriteBucketFile(ctx context.Context, bucketName string, cont
 }
 
 //ListBucket returns a configurable buffered channel which contains a subset of object metadata
-func (sto *StorMgr) ListBucket(ctx context.Context, bucketName, prefix string, start, end *time.Time, bufferSize int) (<-chan interface{}, error) {
+func (sto *StorMgr) ListBucket(ctx context.Context, bucketName, prefix string, bufferSize int) (<-chan interface{}, error) {
 
 	if EnvDebugOn {
 		lblog.LogEvent("StorMgr", "ListBucket", "info", "start")
+	}
+
+	//waitgroup to control goroutines
+	var wg sync.WaitGroup
+
+	//create the channel
+	result := make(chan interface{}, bufferSize)
+
+	//bucket listing function
+	rfn := func(bucketname, prefix string) {
+		lbucketName := bucketname
+		lprefix := prefix
+
+		defer wg.Done()
+
+		//get an iterator to the target bucket
+		it := &storage.ObjectIterator{}
+
+		//if a query prefix was supplied, then use it
+		if lprefix != "" {
+			qr := &storage.Query{
+				Prefix: lprefix,
+			}
+
+			itx := sto.st.Bucket(lbucketName).Objects(ctx, qr)
+			it = itx
+		} else {
+			itx := sto.st.Bucket(lbucketName).Objects(ctx, nil)
+			it = itx
+		}
+
+		//collect the subset of attributes
+		for {
+			attrs, err := it.Next()
+			if err != nil {
+				if err == iterator.Done {
+					return
+				}
+
+				//send back the error if any occur
+				result <- err
+				return
+			}
+
+			//collect the attributes
+			at := make(map[string]interface{})
+
+			at[ObjAttrName] = attrs.Name
+			at[ObjAttrContentType] = attrs.ContentType
+			at[ObjAttrOwner] = attrs.Owner
+			at[ObjAttrSize] = attrs.Size
+			at[ObjAttrContentEncoding] = attrs.ContentEncoding
+			at[ObjAttrCreated] = attrs.Created.Unix()
+
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				result <- at
+			}
+		}
+	}
+
+	wg.Add(1)
+	go rfn(bucketName, prefix)
+
+	go func() {
+		wg.Wait()
+		close(result)
+	}()
+
+	if EnvDebugOn {
+		lblog.LogEvent("StorMgr", "ListBucket", "info", "end")
+	}
+
+	return result, nil
+}
+
+//ListBucketByTime returns a configurable buffered channel which contains a subset of object metadata
+func (sto *StorMgr) ListBucketByTime(ctx context.Context, bucketName, prefix string, start, end *time.Time, bufferSize int) (<-chan interface{}, error) {
+
+	if EnvDebugOn {
+		lblog.LogEvent("StorMgr", "ListBucketByTime", "info", "start")
 	}
 
 	//if the dates are not available, then exit with error
@@ -138,10 +235,10 @@ func (sto *StorMgr) ListBucket(ctx context.Context, bucketName, prefix string, s
 				Prefix: lprefix,
 			}
 
-			itx := sto.localStClient.Bucket(lbucketName).Objects(ctx, qr)
+			itx := sto.st.Bucket(lbucketName).Objects(ctx, qr)
 			it = itx
 		} else {
-			itx := sto.localStClient.Bucket(lbucketName).Objects(ctx, nil)
+			itx := sto.st.Bucket(lbucketName).Objects(ctx, nil)
 			it = itx
 		}
 
@@ -187,6 +284,10 @@ func (sto *StorMgr) ListBucket(ctx context.Context, bucketName, prefix string, s
 		close(result)
 	}()
 
+	if EnvDebugOn {
+		lblog.LogEvent("StorMgr", "ListBucketByTime", "info", "end")
+	}
+
 	return result, nil
 }
 
@@ -196,7 +297,7 @@ func (sto *StorMgr) RemoveFile(ctx context.Context, bucketName string, contentTy
 		lblog.LogEvent("StorMgr", "RemoveFile", "info", "start")
 	}
 
-	err := sto.localStClient.Bucket(bucketName).Object(fileName).Delete(ctx)
+	err := sto.st.Bucket(bucketName).Object(fileName).Delete(ctx)
 	if err != nil {
 		return err
 	}
@@ -206,4 +307,16 @@ func (sto *StorMgr) RemoveFile(ctx context.Context, bucketName string, contentTy
 	}
 
 	return nil
+}
+
+//DrainFn drains a channel until it is closed
+func DrainFn(c <-chan interface{}) {
+	for {
+		select {
+		case _, ok := <-c:
+			if ok == false {
+				return
+			}
+		}
+	}
 }

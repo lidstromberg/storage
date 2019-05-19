@@ -59,7 +59,7 @@ func preflightConfigLoader() map[string]string {
 	cfm := make(map[string]string)
 
 	//EnvDebugOn controls verbose logging
-	cfm["EnvDebugOn"] = os.Getenv("LB_DEBUGON")
+	cfm["EnvDebugOn"] = os.Getenv("STOR_DEBUGON")
 	//EnvStorClientPool is the client poolsize
 	cfm["EnvStorClientPool"] = os.Getenv("STOR_CLIPOOL")
 

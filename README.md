@@ -31,7 +31,7 @@ Change LB_DEBUGON to true/false if you want verbose logging on/off. The other va
 ################################
 # STORAGE
 ################################
-export LB_DEBUGON='true'
+export STOR_DEBUGON='true'
 export STOR_CLIPOOL='5'
 
 ################################
@@ -40,6 +40,22 @@ export STOR_CLIPOOL='5'
 export GOOGLE_APPLICATION_CREDENTIALS="/PATH/TO/GCPCREDENTIALS.JSON"
 ```
 (See [Google Application Credentials])
+
+### Main Files
+| File | Purpose |
+| ------ | ------ |
+| storage.go | Logic manager |
+| storage_test.go | Tests |
+
+### Ancillary Files
+| File | Purpose |
+| ------ | ------ |
+| config.go | Boot package parameters, environment var collection |
+| const.go | Package constants |
+| errors.go | Package error definitions |
+| env | Package environment variables for local/dev installation |
+| storagetester.json | test content file |
+| gogets | Statements for go-getting required packages |
 
    [auth]: <https://github.com/lidstromberg/auth>
    [GCP]: <https://cloud.google.com/>

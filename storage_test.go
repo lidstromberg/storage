@@ -8,13 +8,12 @@ import (
 	"time"
 
 	lbcf "github.com/lidstromberg/config"
-	utils "github.com/lidstromberg/utils"
 
 	context "golang.org/x/net/context"
 )
 
 var (
-	testBucket = "lb-testingdelete-001"
+	testBucket = "{{testbucket}}"
 	testFile   = "storagetester.json"
 	testPrefix = "bucketprefix"
 )
@@ -28,14 +27,14 @@ func getLocalFileData(fileName string) ([]byte, error) {
 
 	return fileBytes, nil
 }
-func Test_NewStorMgr(t *testing.T) {
+func Test_NewMgr(t *testing.T) {
 	ctx := context.Background()
 
 	//create a new config object
 	bc := lbcf.NewConfig(ctx)
 
 	//create a new storage object
-	_, err := NewStorMgr(ctx, bc)
+	_, err := NewMgr(ctx, bc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +46,7 @@ func Test_WriteBucketFile(t *testing.T) {
 	bc := lbcf.NewConfig(ctx)
 
 	//create a new storage object
-	sto, err := NewStorMgr(ctx, bc)
+	sto, err := NewMgr(ctx, bc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +70,7 @@ func Test_GetBucketFileData(t *testing.T) {
 	bc := lbcf.NewConfig(ctx)
 
 	//create a new storage object
-	sto, err := NewStorMgr(ctx, bc)
+	sto, err := NewMgr(ctx, bc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,14 +97,158 @@ func Test_GetBucketFileData(t *testing.T) {
 		t.Fatal("test file content message is not correct")
 	}
 }
-func Test_ListBucketNoPrefixOpenDate(t *testing.T) {
+
+func Test_RemoveFile(t *testing.T) {
 	ctx := context.Background()
 
 	//create a new config object
 	bc := lbcf.NewConfig(ctx)
 
 	//create a new storage object
-	sto, err := NewStorMgr(ctx, bc)
+	sto, err := NewMgr(ctx, bc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//remove the file from the bucket
+	err = sto.RemoveFile(ctx, testBucket, "json", testFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func Test_ListBucketNoPrefix(t *testing.T) {
+	ctx := context.Background()
+
+	//create a new config object
+	bc := lbcf.NewConfig(ctx)
+
+	//create a new storage object
+	sto, err := NewMgr(ctx, bc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//list the bucket (obtain the channel)
+	rfchn, err := sto.ListBucket(ctx, testBucket, "", 100)
+	//if an error is returned here, then the channel is nil
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//defer the channel drain (in case there is an error before the channel producer finishes writing)
+	defer DrainFn(rfchn)
+
+	//create an object attribute subset
+	at := make(map[string]interface{})
+
+	//assume the channel state is open
+	ischopen := true
+	for ischopen {
+		select {
+		//if the context Done has been received, then reset ischopen and break out of the loop..
+		case <-ctx.Done():
+			{
+				ischopen = false
+				break
+			}
+			//or.. read from the channel
+		case r, ok := <-rfchn:
+			//..if is not ok, then the channel has been closed by the producer, so reset ischopen and break..
+			if ok == false {
+				ischopen = false
+				break
+			}
+			//..if is ok and is castable to error, then it's an error.. reset ischopen and test log as fatal
+			if _, ok := r.(error); ok {
+				err := r.(error)
+				ischopen = false
+				t.Fatal(err)
+			}
+			//..if is ok and is castable to ObjectAttrSubset then it's a ObjectAttrSubset
+			if _, ok := r.(map[string]interface{}); ok {
+				at = r.(map[string]interface{})
+
+				//convert the int64 back to a time
+				tm := time.Unix(at[ObjAttrCreated].(int64), 0)
+				fmt.Println(tm)
+
+				fmt.Printf("%s\t%v\n", at[ObjAttrName], tm)
+			}
+		}
+	}
+}
+
+func Test_ListBucketWithPrefix(t *testing.T) {
+	ctx := context.Background()
+
+	//create a new config object
+	bc := lbcf.NewConfig(ctx)
+
+	//create a new storage object
+	sto, err := NewMgr(ctx, bc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//list the bucket (obtain the channel)
+	rfchn, err := sto.ListBucket(ctx, testBucket, testPrefix, 100)
+	//if an error is returned here, then the channel is nil
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//defer the channel drain (in case there is an error before the channel producer finishes writing)
+	defer DrainFn(rfchn)
+
+	//create an object attribute subset
+	at := make(map[string]interface{})
+
+	//assume the channel state is open
+	ischopen := true
+	for ischopen {
+		select {
+		//if the context Done has been received, then reset ischopen and break out of the loop..
+		case <-ctx.Done():
+			{
+				ischopen = false
+				break
+			}
+			//or.. read from the channel
+		case r, ok := <-rfchn:
+			//..if is not ok, then the channel has been closed by the producer, so reset ischopen and break..
+			if ok == false {
+				ischopen = false
+				break
+			}
+			//..if is ok and is castable to error, then it's an error.. reset ischopen and test log as fatal
+			if _, ok := r.(error); ok {
+				err := r.(error)
+				ischopen = false
+				t.Fatal(err)
+			}
+			//..if is ok and is castable to ObjectAttrSubset then it's a ObjectAttrSubset
+			if _, ok := r.(map[string]interface{}); ok {
+				at = r.(map[string]interface{})
+
+				//convert the int64 back to a time
+				tm := time.Unix(at[ObjAttrCreated].(int64), 0)
+				fmt.Println(tm)
+
+				fmt.Printf("%s\t%v\n", at[ObjAttrName], tm)
+			}
+		}
+	}
+}
+
+func Test_ListBucketByTimeNoPrefixOpenDate(t *testing.T) {
+	ctx := context.Background()
+
+	//create a new config object
+	bc := lbcf.NewConfig(ctx)
+
+	//create a new storage object
+	sto, err := NewMgr(ctx, bc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,14 +257,14 @@ func Test_ListBucketNoPrefixOpenDate(t *testing.T) {
 	end := time.Now()
 
 	//list the bucket (obtain the channel)
-	rfchn, err := sto.ListBucket(ctx, testBucket, "", &start, &end, 100)
+	rfchn, err := sto.ListBucketByTime(ctx, testBucket, "", &start, &end, 100)
 	//if an error is returned here, then the channel is nil
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//defer the channel drain (in case there is an error before the channel producer finishes writing)
-	defer utils.DrainFn(rfchn)
+	defer DrainFn(rfchn)
 
 	//create an object attribute subset
 	at := make(map[string]interface{})
@@ -162,14 +305,14 @@ func Test_ListBucketNoPrefixOpenDate(t *testing.T) {
 		}
 	}
 }
-func Test_ListBucketNoPrefixClosedDate(t *testing.T) {
+func Test_ListBucketByTimeNoPrefixClosedDate(t *testing.T) {
 	ctx := context.Background()
 
 	//create a new config object
 	bc := lbcf.NewConfig(ctx)
 
 	//create a new storage object
-	sto, err := NewStorMgr(ctx, bc)
+	sto, err := NewMgr(ctx, bc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,14 +321,14 @@ func Test_ListBucketNoPrefixClosedDate(t *testing.T) {
 	end := time.Now()
 
 	//list the bucket (obtain the channel)
-	rfchn, err := sto.ListBucket(ctx, testBucket, "", &start, &end, 100)
+	rfchn, err := sto.ListBucketByTime(ctx, testBucket, "", &start, &end, 100)
 	//if an error is returned here, then the channel is nil
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//defer the channel drain (in case there is an error before the channel producer finishes writing)
-	defer utils.DrainFn(rfchn)
+	defer DrainFn(rfchn)
 
 	//create an object attribute subset
 	at := make(map[string]interface{})
@@ -226,14 +369,14 @@ func Test_ListBucketNoPrefixClosedDate(t *testing.T) {
 		}
 	}
 }
-func Test_ListBucketWithPrefixClosedDate(t *testing.T) {
+func Test_ListBucketByTimeWithPrefixClosedDate(t *testing.T) {
 	ctx := context.Background()
 
 	//create a new config object
 	bc := lbcf.NewConfig(ctx)
 
 	//create a new storage object
-	sto, err := NewStorMgr(ctx, bc)
+	sto, err := NewMgr(ctx, bc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,14 +385,14 @@ func Test_ListBucketWithPrefixClosedDate(t *testing.T) {
 	end := time.Now()
 
 	//list the bucket (obtain the channel)
-	rfchn, err := sto.ListBucket(ctx, testBucket, testPrefix, &start, &end, 100)
+	rfchn, err := sto.ListBucketByTime(ctx, testBucket, testPrefix, &start, &end, 100)
 	//if an error is returned here, then the channel is nil
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	//defer the channel drain (in case there is an error before the channel producer finishes writing)
-	defer utils.DrainFn(rfchn)
+	defer DrainFn(rfchn)
 
 	//create an object attribute subset
 	at := make(map[string]interface{})
@@ -290,77 +433,3 @@ func Test_ListBucketWithPrefixClosedDate(t *testing.T) {
 		}
 	}
 }
-
-// func Test_ListBucketWithPrefixClosedDateDelete(t *testing.T) {
-// 	ctx := context.Background()
-
-// 	//create a new config object
-// 	bc := lbcf.NewConfig(ctx)
-
-// 	//create a new storage object
-// 	sto, err := NewStorMgr(ctx, bc)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	start := time.Now().AddDate(0, 0, -20)
-// 	end := time.Now()
-// 	prefix := "junk"
-
-// 	//list the bucket (obtain the channel)
-// 	rfchn, err := sto.ListBucket(ctx, testBucket, prefix, &start, &end, 100)
-// 	//if an error is returned here, then the channel is nil
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	//defer the channel drain (in case there is an error before the channel producer finishes writing)
-// 	defer utils.DrainFn(rfchn)
-
-// 	//create an object attribute subset
-// 	at := make(map[string]interface{})
-
-// 	//assume the channel state is open
-// 	ischopen := true
-// 	for ischopen {
-// 		select {
-// 		//if the context Done has been received, then reset ischopen and break out of the loop..
-// 		case <-ctx.Done():
-// 			{
-// 				ischopen = false
-// 				break
-// 			}
-// 			//or.. read from the channel
-// 		case r, ok := <-rfchn:
-// 			//..if is not ok, then the channel has been closed by the producer, so reset ischopen and break..
-// 			if ok == false {
-// 				ischopen = false
-// 				break
-// 			}
-// 			//..if is ok and is castable to error, then it's an error.. reset ischopen and test log as fatal
-// 			if _, ok := r.(error); ok {
-// 				err := r.(error)
-// 				ischopen = false
-// 				t.Fatal(err)
-// 			}
-// 			//..if is ok and is castable to ObjectAttrSubset then it's a ObjectAttrSubset
-// 			if _, ok := r.(map[string]interface{}); ok {
-// 				at = r.(map[string]interface{})
-
-// 				now := time.Now()
-
-// 				//convert the int64 back to a time
-// 				tm := time.Unix(at[ObjAttrCreated].(int64), 0)
-// 				fmt.Println(tm)
-
-// 				dur := now.Sub(tm)
-
-// 				if dur.Hours() >= 720.00 {
-
-// 				}
-
-// 				fmt.Printf("%s\t%v\t%d\n", at[ObjAttrName], tm, at[ObjAttrCreated])
-// 			}
-// 		}
-// 	}
-// }
