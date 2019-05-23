@@ -45,12 +45,12 @@ func NewMgr(ctx context.Context, bc lbcf.ConfigSetting) (*StorMgr, error) {
 	return st1, nil
 }
 
-//NewJSONCredMgr returns a new storage manager based on a GCP credential supplied as a byte array
-func NewJSONCredMgr(ctx context.Context, bc lbcf.ConfigSetting, cred []byte) (*StorMgr, error) {
+//NewJSONMgr returns a new storage manager based on a GCP credential supplied as a byte array
+func NewJSONMgr(ctx context.Context, bc lbcf.ConfigSetting, cred []byte) (*StorMgr, error) {
 	preflight(ctx, bc)
 
 	if EnvDebugOn {
-		lblog.LogEvent("StorMgr", "NewMgr", "info", "start")
+		lblog.LogEvent("StorMgr", "NewJSONMgr", "info", "start")
 	}
 
 	storageClient, err := storage.NewClient(ctx, option.WithGRPCConnectionPool(EnvClientPool), option.WithCredentialsJSON(cred))
@@ -64,7 +64,7 @@ func NewJSONCredMgr(ctx context.Context, bc lbcf.ConfigSetting, cred []byte) (*S
 	}
 
 	if EnvDebugOn {
-		lblog.LogEvent("StorMgr", "NewMgr", "info", "end")
+		lblog.LogEvent("StorMgr", "NewJSONMgr", "info", "end")
 	}
 
 	return st1, nil
