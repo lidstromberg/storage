@@ -60,6 +60,10 @@ github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+o
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
+github.com/lidstromberg/config v0.0.0-20191209155202-132b0a8a5ff3 h1:Mbp7nQrhl1jNzQ3rJ002UvpnmEaTDTQKfF52D35cW0Q=
+github.com/lidstromberg/config v0.0.0-20191209155202-132b0a8a5ff3/go.mod h1:IvJuPttTHeVmtk9DzQKWx64OmlTZ7gZFJFA6x6r3MXg=
+github.com/lidstromberg/log v0.0.0-20191209155015-d2790d9ae148 h1:TWL/jCaWbjLnfMVRdDFE88ZXM2Ud/uhydB0R4UFXoV4=
+github.com/lidstromberg/log v0.0.0-20191209155015-d2790d9ae148/go.mod h1:y/L0diqG0L1KXbRX/Sz6+/3bm8pEbjsUccxwxMP+3AI=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
