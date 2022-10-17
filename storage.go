@@ -80,6 +80,7 @@ func (sto *StorMgr) GetBucketFileData(ctx context.Context, bucketName string, fi
 	defer func(rc *storage.Reader) {
 		err := rc.Close()
 		if err != nil {
+			lblog.LogEvent("StorMgr", "GetBucketFileData", "error", err.Error())
 		}
 	}(rc)
 
@@ -109,6 +110,7 @@ func (sto *StorMgr) WriteBucketFile(ctx context.Context, bucketName string, file
 	defer func(wc *storage.Writer) {
 		err := wc.Close()
 		if err != nil {
+			lblog.LogEvent("StorMgr", "GetBucketFileData", "error", err.Error())
 		}
 	}(wc)
 
