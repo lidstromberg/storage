@@ -77,10 +77,15 @@ func (sto *StorMgr) GetBucketFileData(ctx context.Context, bucketName string, fi
 	}
 
 	rc, err := sto.st.Bucket(bucketName).Object(fileName).NewReader(ctx)
+	defer func(rc *storage.Reader) {
+		err := rc.Close()
+		if err != nil {
+		}
+	}(rc)
+
 	if err != nil {
 		return nil, err
 	}
-	defer rc.Close()
 
 	data, err := ioutil.ReadAll(rc)
 	if err != nil {
@@ -95,13 +100,17 @@ func (sto *StorMgr) GetBucketFileData(ctx context.Context, bucketName string, fi
 }
 
 //WriteBucketFile writes a file byte array to a bucket file
-func (sto *StorMgr) WriteBucketFile(ctx context.Context, bucketName string, contentType, fileName string, data []byte) error {
+func (sto *StorMgr) WriteBucketFile(ctx context.Context, bucketName string, fileName string, data []byte) error {
 	if EnvDebugOn {
 		lblog.LogEvent("StorMgr", "WriteBucketFile", "info", "start")
 	}
 
 	wc := sto.st.Bucket(bucketName).Object(fileName).NewWriter(ctx)
-	defer wc.Close()
+	defer func(wc *storage.Writer) {
+		err := wc.Close()
+		if err != nil {
+		}
+	}(wc)
 
 	if _, err := wc.Write(data); err != nil {
 		return err
@@ -292,7 +301,7 @@ func (sto *StorMgr) ListBucketByTime(ctx context.Context, bucketName, prefix str
 }
 
 //RemoveFile deletes a bucket file
-func (sto *StorMgr) RemoveFile(ctx context.Context, bucketName string, contentType, fileName string) error {
+func (sto *StorMgr) RemoveFile(ctx context.Context, bucketName string, fileName string) error {
 	if EnvDebugOn {
 		lblog.LogEvent("StorMgr", "RemoveFile", "info", "start")
 	}

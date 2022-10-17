@@ -1,25 +1,32 @@
 module github.com/lidstromberg/storage
 
-go 1.13
+go 1.18
 
 require (
-	cloud.google.com/go v0.49.0 // indirect
-	cloud.google.com/go/storage v1.4.0
-	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
-	github.com/google/go-cmp v0.3.1 // indirect
-	github.com/hashicorp/golang-lru v0.5.3 // indirect
-	github.com/jstemmer/go-junit-report v0.9.1 // indirect
-	github.com/lidstromberg/config v0.0.0-20191209155202-132b0a8a5ff3
-	github.com/lidstromberg/log v0.0.0-20191209155015-d2790d9ae148
-	go.opencensus.io v0.22.2 // indirect
-	golang.org/x/exp v0.0.0-20191129062945-2f5052295587 // indirect
-	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
-	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
-	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6 // indirect
-	golang.org/x/sys v0.0.0-20191206220618-eeba5f6aabab // indirect
-	golang.org/x/tools v0.0.0-20191206204035-259af5ff87bd // indirect
-	google.golang.org/api v0.14.0
-	google.golang.org/appengine v1.6.5 // indirect
-	google.golang.org/genproto v0.0.0-20191206224255-0243a4be9c8f // indirect
-	google.golang.org/grpc v1.25.1 // indirect
+	cloud.google.com/go/storage v1.27.0
+	github.com/lidstromberg/config v0.1.0
+	github.com/lidstromberg/log v0.1.0
+	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b
+	google.golang.org/api v0.99.0
+)
+
+require (
+	cloud.google.com/go v0.104.0 // indirect
+	cloud.google.com/go/compute v1.10.0 // indirect
+	cloud.google.com/go/iam v0.3.0 // indirect
+	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.2.0 // indirect
+	github.com/googleapis/gax-go/v2 v2.5.1 // indirect
+	go.opencensus.io v0.23.0 // indirect
+	golang.org/x/oauth2 v0.0.0-20221006150949-b44042a4b9c1 // indirect
+	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
+	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
+	google.golang.org/genproto v0.0.0-20221010155953-15ba04fc1c0e // indirect
+	google.golang.org/grpc v1.50.0 // indirect
+	google.golang.org/protobuf v1.28.1 // indirect
 )

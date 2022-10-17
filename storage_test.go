@@ -9,13 +9,14 @@ import (
 
 	lbcf "github.com/lidstromberg/config"
 
-	context "golang.org/x/net/context"
+	"golang.org/x/net/context"
 )
 
 var (
-	testBucket = "{{testbucket}}"
-	testFile   = "storagetester.json"
-	testPrefix = "bucketprefix"
+	testBucket      = "{{nameofbucket}}"
+	testFile        = "storagetester.json"
+	testPrefix      = "{{bucketprefix}}"
+	testPathToCreds = "{{/path/to/creds.json}}"
 )
 
 //GetLocalFileData returns a byte array for a local file
@@ -39,6 +40,23 @@ func Test_NewMgr(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+func Test_NewJsonMgr(t *testing.T) {
+	ctx := context.Background()
+
+	//create a new config object
+	bc := lbcf.NewConfig(ctx)
+
+	credbytes, err := getLocalFileData(testPathToCreds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//create a new storage object
+	_, err = NewJSONMgr(ctx, bc, credbytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 func Test_WriteBucketFile(t *testing.T) {
 	ctx := context.Background()
 
@@ -58,7 +76,7 @@ func Test_WriteBucketFile(t *testing.T) {
 	}
 
 	//write to the test bucket
-	err = sto.WriteBucketFile(ctx, testBucket, "json", testFile, dat)
+	err = sto.WriteBucketFile(ctx, testBucket, testFile, dat)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +129,7 @@ func Test_RemoveFile(t *testing.T) {
 	}
 
 	//remove the file from the bucket
-	err = sto.RemoveFile(ctx, testBucket, "json", testFile)
+	err = sto.RemoveFile(ctx, testBucket, testFile)
 	if err != nil {
 		t.Fatal(err)
 	}
