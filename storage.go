@@ -77,16 +77,16 @@ func (sto *StorMgr) GetBucketFileData(ctx context.Context, bucketName string, fi
 	}
 
 	rc, err := sto.st.Bucket(bucketName).Object(fileName).NewReader(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	defer func(rc *storage.Reader) {
 		err := rc.Close()
 		if err != nil {
 			lblog.LogEvent("StorMgr", "GetBucketFileData", "error", err.Error())
 		}
 	}(rc)
-
-	if err != nil {
-		return nil, err
-	}
 
 	data, err := ioutil.ReadAll(rc)
 	if err != nil {
@@ -115,10 +115,6 @@ func (sto *StorMgr) WriteBucketFile(ctx context.Context, bucketName string, file
 	}(wc)
 
 	if _, err := wc.Write(data); err != nil {
-		return err
-	}
-
-	if err := wc.Close(); err != nil {
 		return err
 	}
 
