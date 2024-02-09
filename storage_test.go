@@ -3,7 +3,7 @@ package storage
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -19,9 +19,9 @@ var (
 	testPathToCreds = "{{/path/to/creds.json}}"
 )
 
-//GetLocalFileData returns a byte array for a local file
+// GetLocalFileData returns a byte array for a local file
 func getLocalFileData(fileName string) ([]byte, error) {
-	fileBytes, err := ioutil.ReadFile(fileName)
+	fileBytes, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}

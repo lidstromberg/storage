@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"io/ioutil"
+	"io"
 	"sync"
 	"time"
 
@@ -14,13 +14,13 @@ import (
 	"google.golang.org/api/option"
 )
 
-//StorMgr handles interactions with GCS
+// StorMgr handles interactions with GCS
 type StorMgr struct {
 	st *storage.Client
 	bc lbcf.ConfigSetting
 }
 
-//NewMgr returns a new storage manager
+// NewMgr returns a new storage manager
 func NewMgr(ctx context.Context, bc lbcf.ConfigSetting) (*StorMgr, error) {
 	preflight(ctx, bc)
 
@@ -45,7 +45,7 @@ func NewMgr(ctx context.Context, bc lbcf.ConfigSetting) (*StorMgr, error) {
 	return st1, nil
 }
 
-//NewJSONMgr returns a new storage manager based on a GCP credential supplied as a byte array
+// NewJSONMgr returns a new storage manager based on a GCP credential supplied as a byte array
 func NewJSONMgr(ctx context.Context, bc lbcf.ConfigSetting, cred []byte) (*StorMgr, error) {
 	preflight(ctx, bc)
 
@@ -70,7 +70,7 @@ func NewJSONMgr(ctx context.Context, bc lbcf.ConfigSetting, cred []byte) (*StorM
 	return st1, nil
 }
 
-//GetBucketFileData returns a byte array for a bucket file
+// GetBucketFileData returns a byte array for a bucket file
 func (sto *StorMgr) GetBucketFileData(ctx context.Context, bucketName string, fileName string) ([]byte, error) {
 	if EnvDebugOn {
 		lblog.LogEvent("StorMgr", "GetBucketFileData", "info", "start")
@@ -88,7 +88,7 @@ func (sto *StorMgr) GetBucketFileData(ctx context.Context, bucketName string, fi
 		}
 	}(rc)
 
-	data, err := ioutil.ReadAll(rc)
+	data, err := io.ReadAll(rc)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (sto *StorMgr) GetBucketFileData(ctx context.Context, bucketName string, fi
 	return data, nil
 }
 
-//WriteBucketFile writes a file byte array to a bucket file
+// WriteBucketFile writes a file byte array to a bucket file
 func (sto *StorMgr) WriteBucketFile(ctx context.Context, bucketName string, fileName string, data []byte) error {
 	if EnvDebugOn {
 		lblog.LogEvent("StorMgr", "WriteBucketFile", "info", "start")
@@ -125,7 +125,7 @@ func (sto *StorMgr) WriteBucketFile(ctx context.Context, bucketName string, file
 	return nil
 }
 
-//ListBucket returns a configurable buffered channel which contains a subset of object metadata
+// ListBucket returns a configurable buffered channel which contains a subset of object metadata
 func (sto *StorMgr) ListBucket(ctx context.Context, bucketName, prefix string, bufferSize int) (<-chan interface{}, error) {
 
 	if EnvDebugOn {
@@ -208,7 +208,7 @@ func (sto *StorMgr) ListBucket(ctx context.Context, bucketName, prefix string, b
 	return result, nil
 }
 
-//ListBucketByTime returns a configurable buffered channel which contains a subset of object metadata
+// ListBucketByTime returns a configurable buffered channel which contains a subset of object metadata
 func (sto *StorMgr) ListBucketByTime(ctx context.Context, bucketName, prefix string, start, end *time.Time, bufferSize int) (<-chan interface{}, error) {
 
 	if EnvDebugOn {
@@ -298,7 +298,7 @@ func (sto *StorMgr) ListBucketByTime(ctx context.Context, bucketName, prefix str
 	return result, nil
 }
 
-//RemoveFile deletes a bucket file
+// RemoveFile deletes a bucket file
 func (sto *StorMgr) RemoveFile(ctx context.Context, bucketName string, fileName string) error {
 	if EnvDebugOn {
 		lblog.LogEvent("StorMgr", "RemoveFile", "info", "start")
@@ -316,7 +316,7 @@ func (sto *StorMgr) RemoveFile(ctx context.Context, bucketName string, fileName 
 	return nil
 }
 
-//DrainFn drains a channel until it is closed
+// DrainFn drains a channel until it is closed
 func DrainFn(c <-chan interface{}) {
 	for {
 		select {
